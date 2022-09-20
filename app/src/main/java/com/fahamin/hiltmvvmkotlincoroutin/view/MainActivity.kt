@@ -1,0 +1,64 @@
+package com.fahamin.hiltmvvmkotlincoroutin.view
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
+import androidx.lifecycle.ViewModelProvider
+import com.fahamin.hiltmvvmkotlincoroutin.Movie
+import com.fahamin.hiltmvvmkotlincoroutin.NetworkResult
+import com.fahamin.hiltmvvmkotlincoroutin.adapter.ClickInterface
+import com.fahamin.hiltmvvmkotlincoroutin.adapter.MovieAdapter
+import com.fahamin.hiltmvvmkotlincoroutin.databinding.ActivityMainBinding
+import com.fahamin.hiltmvvmkotlincoroutin.viewModel.MainActivityViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+
+
+@AndroidEntryPoint
+class MainActivity : AppCompatActivity() {
+
+
+    lateinit var binding: ActivityMainBinding
+
+     lateinit var mainActivityViewModel: MainActivityViewModel
+
+    @Inject
+    lateinit var movieAdapter: MovieAdapter
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.rvMovies.adapter = movieAdapter
+
+        mainActivityViewModel = ViewModelProvider(this).get(MainActivityViewModel::class.java)
+
+        movieAdapter.setItemClick(object : ClickInterface<Movie> {
+            override fun onClick(data: Movie) {
+                Toast.makeText(this@MainActivity, data.title, Toast.LENGTH_SHORT).show()
+            }
+        })
+
+
+        mainActivityViewModel.responsMovie.observe(this)
+        {
+            when(it)
+            {
+                is NetworkResult.Loading->{
+                    binding.progressbar.isVisible = it.isLoading
+                }
+                is NetworkResult.Failure->{
+                    Toast.makeText(this,it.errorMessage,Toast.LENGTH_SHORT)
+                    binding.progressbar.isVisible = false
+                }
+                is  NetworkResult.Success -> {
+                    movieAdapter.updateMovies(it.data)
+                    binding.progressbar.isVisible = false
+                }
+            }
+        }
+    }
+
+}
